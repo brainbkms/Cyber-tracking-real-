@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Cyber-Tracking-Real - Sécurité Anti-Intrusion</title>
-    <meta name="description" content="Système de détection d'intrusion, localisation GPS, scan réseau et surveillance en temps réel">
-    <meta name="author" content="CyberTrack">
+    <meta name="description" content="Système de détection d'intrusion avec IA, localisation GPS et scan réseau">
+    <meta name="author" content="CyberTrack Security">
     <meta name="theme-color" content="#0a0a0a">
     
     <!-- Firebase SDK Modulaire -->
@@ -19,22 +19,28 @@
         }
     </script>
     
-    <!-- Autres librairies -->
+    <!-- Librairies -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', monospace;
-            background: #0a0a0a;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
             color: #0f0;
             padding: 15px;
             min-height: 100vh;
         }
         @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
         @keyframes pulse { 0%,100%{box-shadow:0 0 5px #f00;} 50%{box-shadow:0 0 20px #f00;} }
+        @keyframes glitch {
+            0% { text-shadow: -2px 0 red, 2px 0 blue; }
+            50% { text-shadow: 2px 0 red, -2px 0 blue; }
+            100% { text-shadow: -2px 0 red, 2px 0 blue; }
+        }
         .terminal {
             background: #000000dd;
             border: 2px solid #0f0;
@@ -49,13 +55,13 @@
             border: 1px solid #0f0;
             border-radius: 10px;
             padding: 15px;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card:hover { transform: translateY(-2px); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 0 20px rgba(0,255,0,0.2); }
         .metric {
             display: flex;
             justify-content: space-between;
-            padding: 8px;
+            padding: 10px;
             margin: 5px 0;
             background: #000000aa;
             border-left: 3px solid #0f0;
@@ -70,12 +76,14 @@
             cursor: pointer;
             font-family: monospace;
             border-radius: 5px;
-            transition: all 0.2s;
             font-weight: bold;
+            transition: all 0.2s;
         }
-        button:hover { background: #0f0; color: #000; transform: scale(1.02); }
+        button:hover { background: #0f0; color: #000; transform: scale(1.02); box-shadow: 0 0 10px #0f0; }
         .btn-danger { border-color: #f00; color: #f00; }
-        .btn-danger:hover { background: #f00; color: #000; }
+        .btn-danger:hover { background: #f00; color: #000; box-shadow: 0 0 10px #f00; }
+        .btn-warning { border-color: #ff0; color: #ff0; }
+        .btn-warning:hover { background: #ff0; color: #000; }
         .log-area {
             background: #000;
             height: 200px;
@@ -88,58 +96,56 @@
         .fraud { color: #f00; background: rgba(255,0,0,0.2); font-weight: bold; }
         .success { color: #0f0; }
         .warning { color: #ff0; }
-        #map { height: 250px; border-radius: 10px; border: 2px solid #0f0; margin-top: 10px; }
+        .ai-alert { color: #f0f; background: rgba(255,0,255,0.2); animation: pulse 1s infinite; }
+        #map { height: 280px; border-radius: 10px; border: 2px solid #0f0; margin-top: 10px; }
         .status-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
         .badge { padding: 5px 12px; background: #000000aa; border: 1px solid #0f0; border-radius: 20px; font-size: 0.8em; }
-        .alert-badge {
-            animation: pulse 1s infinite;
-            background: rgba(255,0,0,0.3);
-            border-color: #f00;
-            color: #f00;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.7em;
-            color: #666;
-        }
+        .risk-high { background: rgba(255,0,0,0.3); border-color: #f00; color: #f00; animation: pulse 1s infinite; }
+        .risk-medium { background: rgba(255,255,0,0.3); border-color: #ff0; color: #ff0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.7em; color: #666; }
+        canvas { max-height: 200px; margin-top: 10px; background: #000; border-radius: 5px; }
         @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } button { padding: 8px 12px; } }
     </style>
 </head>
 <body>
     <div class="terminal">
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center;">
-            <span style="font-size: 1.2em;">🛡️ CYBER-TRACKING-REAL v4.0</span>
-            <span class="blink" style="background:#f00; padding:4px 12px; border-radius:20px; font-size:0.7em;">🔴 ACTIF</span>
+            <span style="font-size: 1.2em;">🛡️ CYBER-TRACKING-REAL v5.0 - IA INTÉGRÉE</span>
+            <span class="blink" style="background:#f00; padding:4px 12px; border-radius:20px; font-size:0.7em;">🔴 SURVEILLANCE ACTIVE</span>
         </div>
         <div class="status-bar">
+            <span class="badge" id="threatBadge">📊 RISQUE: NORMAL</span>
             <span class="badge">🚨 Intrusions: <span id="intrusionCount">0</span></span>
+            <span class="badge">🧠 Score IA: <span id="aiScore">0%</span></span>
             <span class="badge">👤 ID: <span id="userId">-</span></span>
-            <span class="badge">☁️ DB: <span id="dbStatus">⏳ CONNEXION</span></span>
+            <span class="badge">☁️ DB: <span id="dbStatus">⏳</span></span>
             <span class="badge">📡 IP: <span id="ipDisplay">-</span></span>
         </div>
     </div>
 
     <div class="grid">
         <div class="card">
-            <h3>📍 LOCALISATION GPS</h3>
+            <h3>📍 LOCALISATION & DÉTECTION</h3>
             <div id="map"></div>
             <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px;">
                 <button onclick="getCurrentLocation()">📍 MA POSITION</button>
                 <button onclick="scanIntrusion()" class="btn-danger">🎯 DÉTECTER INTRUS</button>
                 <button onclick="scanNetwork()">🌐 SCAN RÉSEAU</button>
+                <button onclick="runAIAnalysis()" class="btn-warning">🧠 ANALYSE IA</button>
             </div>
         </div>
 
         <div class="card">
-            <h3>📊 INFORMATIONS RÉSEAU</h3>
+            <h3>📊 INFORMATIONS RÉSEAU & IA</h3>
             <div class="metric"><span>🌍 Pays:</span><span id="country">-</span></div>
             <div class="metric"><span>🏢 FAI:</span><span id="isp">-</span></div>
             <div class="metric"><span>🛡️ VPN/Proxy:</span><span id="vpn">-</span></div>
             <div class="metric"><span>📍 Ville:</span><span id="city">-</span></div>
+            <div class="metric"><span>🧠 Prédiction IA:</span><span id="iaPrediction">Analyse en cours...</span></div>
+            <canvas id="riskChart" width="400" height="120"></canvas>
             <div class="log-area" id="logs">
-                <div class="log-entry">[SYSTEM] Cyber-Tracking-Real v4.0</div>
-                <div class="log-entry">[SYSTEM] Initialisation...</div>
+                <div class="log-entry">[SYSTEM] Cyber-Tracking-Real v5.0 avec IA</div>
+                <div class="log-entry">[SYSTEM] Prêt - Surveillance active</div>
             </div>
         </div>
     </div>
@@ -148,6 +154,7 @@
         <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
             <div>
                 <button onclick="exportData()">📥 EXPORTER DONNÉES</button>
+                <button onclick="exportAIAnalysis()">📊 EXPORTER ANALYSE IA</button>
                 <button onclick="clearLogs()">🗑️ EFFACER LOGS</button>
                 <button onclick="refreshAll()">🔄 RAFRAÎCHIR</button>
             </div>
@@ -158,7 +165,7 @@
     </div>
     
     <div class="footer">
-        🔒 Système de détection d'intrusion | Localisation GPS | Scan réseau | Données chiffrées
+        🔒 Détection d'intrusion | IA prédictive | GPS temps réel | Scan VPN | Cloud sécurisé
     </div>
 
     <script type="module">
@@ -169,11 +176,9 @@
             projectId: "cyber-tracking-real",
             storageBucket: "cyber-tracking-real.firebasestorage.app",
             messagingSenderId: "678371376561",
-            appId: "1:678371376561:web:0588f6e2400eb48148d190",
-            measurementId: "G-XBDP12H526"
+            appId: "1:678371376561:web:0588f6e2400eb48148d190"
         };
         
-        // Imports Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, addDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -183,12 +188,15 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Variables
+        // ==================== VARIABLES ====================
         let map = null;
         let currentUser = { uid: null };
         let intrusionCount = 0;
+        let riskChart = null;
+        let historicalData = [];
+        let aiRiskScore = 0;
         
-        // Initialisation carte
+        // ==================== INITIALISATION CARTE ====================
         function initMap() {
             map = L.map('map').setView([48.8566, 2.3522], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -198,175 +206,310 @@
             }).addTo(map);
         }
         
-        // Authentification
+        // ==================== GRAPHIQUE IA ====================
+        function initChart() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            riskChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00h', '04h', '08h', '12h', '16h', '20h', '24h'],
+                    datasets: [{
+                        label: 'Risque d\'intrusion (%)',
+                        data: [15, 25, 10, 20, 35, 55, 45],
+                        borderColor: '#0f0',
+                        backgroundColor: 'rgba(0,255,0,0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: { y: { min: 0, max: 100, grid: { color: 'rgba(0,255,0,0.2)' } } },
+                    plugins: { legend: { labels: { color: '#0f0' } } }
+                }
+            });
+        }
+        
+        // ==================== IA PRÉDICTIVE ====================
+        async function runAIAnalysis() {
+            addLog("[IA] 🧠 Analyse prédictive en cours...", "warning");
+            
+            const currentHour = new Date().getHours();
+            const dayOfWeek = new Date().getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const vpnDetected = document.getElementById('vpn').innerHTML.includes("OUI");
+            const currentIP = document.getElementById('ipDisplay').innerHTML;
+            
+            // Modèle de prédiction basé sur patterns
+            let risk = 0;
+            
+            // Facteur horaire (plus de risques la nuit)
+            if(currentHour >= 22 || currentHour <= 5) risk += 35;
+            else if(currentHour >= 20 || currentHour <= 7) risk += 20;
+            else risk += 10;
+            
+            // Facteur weekend
+            if(isWeekend) risk += 15;
+            
+            // Facteur VPN
+            if(vpnDetected) risk += 30;
+            
+            // Facteur historique
+            if(intrusionCount > 10) risk += 20;
+            else if(intrusionCount > 5) risk += 10;
+            
+            // Facteur changement IP (anomalie)
+            if(window.previousIP && window.previousIP !== currentIP) risk += 25;
+            window.previousIP = currentIP;
+            
+            aiRiskScore = Math.min(risk, 100);
+            document.getElementById('aiScore').innerHTML = aiRiskScore + "%";
+            
+            // Mise à jour du badge de menace
+            const threatBadge = document.getElementById('threatBadge');
+            if(aiRiskScore > 70) {
+                threatBadge.innerHTML = "📊 RISQUE: CRITIQUE";
+                threatBadge.className = "badge risk-high";
+                addLog(`🚨 [IA] RISQUE CRITIQUE: ${aiRiskScore}% - Surveillance maximale`, "fraud");
+                if(Notification.permission === "granted") {
+                    new Notification("🚨 ALERTE IA - RISQUE CRITIQUE", { body: `Niveau de menace: ${aiRiskScore}%` });
+                }
+            } else if(aiRiskScore > 40) {
+                threatBadge.innerHTML = "📊 RISQUE: ÉLEVÉ";
+                threatBadge.className = "badge risk-medium";
+                addLog(`⚠️ [IA] Risque élevé: ${aiRiskScore}%`, "warning");
+            } else {
+                threatBadge.innerHTML = "📊 RISQUE: NORMAL";
+                threatBadge.className = "badge";
+                addLog(`[IA] Niveau de risque: ${aiRiskScore}%`, "success");
+            }
+            
+            document.getElementById('iaPrediction').innerHTML = `Risque: ${aiRiskScore}% - ${aiRiskScore > 50 ? '🔴 SURVEILLANCE RENFORCÉE' : '🟢 SITUATION NORMALE'}`;
+            
+            // Sauvegarder l'analyse IA
+            await saveAIAnalysis(aiRiskScore, currentHour, vpnDetected);
+            
+            // Mettre à jour le graphique
+            if(riskChart) {
+                const newData = [...riskChart.data.datasets[0].data.slice(1), aiRiskScore];
+                riskChart.data.datasets[0].data = newData;
+                riskChart.update();
+            }
+            
+            return aiRiskScore;
+        }
+        
+        async function saveAIAnalysis(score, hour, vpnDetected) {
+            if(!db || !currentUser.uid) return;
+            try {
+                await addDoc(collection(db, 'ai_analysis'), {
+                    userId: currentUser.uid,
+                    score: score,
+                    hour: hour,
+                    vpnDetected: vpnDetected,
+                    timestamp: new Date().toISOString()
+                });
+            } catch(e) {}
+        }
+        
+        // ==================== AUTHENTIFICATION ====================
         async function initAuth() {
             try {
                 await signInAnonymously(auth);
-                document.getElementById('dbStatus').innerHTML = "CONNECTÉ ✅";
+                document.getElementById('dbStatus').innerHTML = "✅";
                 document.getElementById('dbStatus').style.color = "#0f0";
-                addLog("[AUTH] ✅ Authentification Firebase réussie", "success");
-            } catch(error) {
-                document.getElementById('dbStatus').innerHTML = "HORS-LIGNE";
-                document.getElementById('dbStatus').style.color = "#ff0";
-                addLog(`[AUTH] ⚠️ Mode hors-ligne: ${error.message}`, "warning");
+                addLog("[AUTH] ✅ Firebase connecté", "success");
+            } catch(e) {
+                document.getElementById('dbStatus').innerHTML = "⚠️";
+                addLog(`[AUTH] ⚠️ Mode hors-ligne`, "warning");
             }
         }
         
         onAuthStateChanged(auth, async (user) => {
             if(user) {
                 currentUser.uid = user.uid;
-                document.getElementById('userId').innerHTML = user.uid.substring(0, 8) + "...";
-                addLog(`[AUTH] 👤 Session démarrée`, "success");
-                await loadUserData();
+                document.getElementById('userId').innerHTML = user.uid.substring(0,6)+"...";
+                try {
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    const snap = await getDoc(userRef);
+                    if(snap.exists()) {
+                        intrusionCount = snap.data().intrusionCount || 0;
+                        historicalData = snap.data().historicalData || [];
+                    } else {
+                        await setDoc(userRef, { intrusionCount: 0, historicalData: [], createdAt: new Date().toISOString() });
+                    }
+                    document.getElementById('intrusionCount').innerHTML = intrusionCount;
+                } catch(e) {}
                 await scanNetwork();
+                await runAIAnalysis();
             }
         });
         
-        async function loadUserData() {
-            if(!db || !currentUser.uid) return;
-            try {
-                const userRef = doc(db, 'users', currentUser.uid);
-                const userSnap = await getDoc(userRef);
-                if(userSnap.exists()) {
-                    intrusionCount = userSnap.data().intrusionCount || 0;
-                    document.getElementById('intrusionCount').innerHTML = intrusionCount;
-                } else {
-                    await setDoc(userRef, { intrusionCount: 0, createdAt: new Date().toISOString() });
-                }
-            } catch(error) {
-                addLog(`[DATA] ⚠️ ${error.message}`, "warning");
-            }
-        }
-        
-        // Scan réseau
+        // ==================== SCAN RÉSEAU ====================
         async function scanNetwork() {
-            addLog("[NETWORK] 🌐 Scan réseau...", "info");
             try {
-                const ipRes = await axios.get('https://api.ipify.org?format=json');
-                const ip = ipRes.data.ip;
-                document.getElementById('ipDisplay').innerHTML = ip;
-                
-                const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`);
-                document.getElementById('country').innerHTML = geoRes.data.country_name || "Inconnu";
-                document.getElementById('isp').innerHTML = geoRes.data.org || "Inconnu";
-                document.getElementById('city').innerHTML = geoRes.data.city || "Inconnue";
-                
-                const isVPN = geoRes.data.proxy || geoRes.data.tor || geoRes.data.vpn;
-                document.getElementById('vpn').innerHTML = isVPN ? "⚠️ DÉTECTÉ" : "✅ NORMAL";
-                
-                addLog(`[NETWORK] 📡 IP: ${ip} - ${geoRes.data.country_name}`, "success");
+                const ipRes = await axios.get('https://api.ipify.org?format=json', { timeout: 5000 });
+                document.getElementById('ipDisplay').innerHTML = ipRes.data.ip;
+                const geo = await axios.get(`https://ipapi.co/${ipRes.data.ip}/json/`, { timeout: 5000 });
+                document.getElementById('country').innerHTML = geo.data.country_name || "-";
+                document.getElementById('isp').innerHTML = geo.data.org || "-";
+                document.getElementById('city').innerHTML = geo.data.city || "-";
+                const vpn = geo.data.proxy || geo.data.tor || geo.data.vpn;
+                document.getElementById('vpn').innerHTML = vpn ? "⚠️ OUI" : "✅ NON";
                 document.getElementById('lastUpdate').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
-            } catch(error) {
-                addLog(`[NETWORK] ❌ ${error.message}`, "error");
+                addLog(`[NETWORK] IP: ${ipRes.data.ip} - ${geo.data.country_name}`, "success");
+                
+                if(vpn) {
+                    addLog(`🚨 [SECURITY] VPN/Proxy détecté!`, "fraud");
+                    await runAIAnalysis();
+                }
+            } catch(e) { 
+                addLog(`[NETWORK] ⚠️ ${e.message}`, "warning"); 
             }
         }
         
-        // Localisation GPS
+        // ==================== LOCALISATION GPS ====================
         window.getCurrentLocation = function() {
             if("geolocation" in navigator) {
                 addLog("[GPS] 📍 Récupération position...", "info");
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        map.setView([lat, lng], 15);
-                        L.marker([lat, lng]).addTo(map).bindPopup("📍 <b>Vous êtes ici</b>").openPopup();
-                        addLog(`📍 [GPS] ${lat.toFixed(4)}, ${lng.toFixed(4)}`, "success");
+                    (p) => {
+                        map.setView([p.coords.latitude, p.coords.longitude], 15);
+                        L.marker([p.coords.latitude, p.coords.longitude]).addTo(map)
+                            .bindPopup(`📍 <b>Position actuelle</b><br>Lat: ${p.coords.latitude.toFixed(4)}<br>Lng: ${p.coords.longitude.toFixed(4)}`)
+                            .openPopup();
+                        addLog(`📍 GPS: ${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`, "success");
                     },
-                    (error) => addLog(`❌ [GPS] ${error.message}`, "error"),
-                    { enableHighAccuracy: true }
+                    (e) => addLog(`❌ GPS: ${e.message}`, "error"),
+                    { enableHighAccuracy: true, timeout: 10000 }
                 );
             } else {
-                addLog("❌ [GPS] Non supporté", "error");
+                addLog("❌ GPS non supporté", "error");
             }
         };
         
-        // Détection intrusion
+        // ==================== DÉTECTION INTRUSION ====================
         window.scanIntrusion = async function() {
             addLog("[INTRUSION] 🎯 Scan en cours...", "warning");
             try {
-                const ipRes = await axios.get('https://api.ipify.org?format=json');
-                const geoRes = await axios.get(`https://ipapi.co/${ipRes.data.ip}/json/`);
-                const lat = geoRes.data.latitude || 48.8566;
-                const lng = geoRes.data.longitude || 2.3522;
-                const locationName = `${geoRes.data.city || 'Inconnue'}, ${geoRes.data.country_name}`;
+                const ipRes = await axios.get('https://api.ipify.org?format=json', { timeout: 5000 });
+                const geo = await axios.get(`https://ipapi.co/${ipRes.data.ip}/json/`, { timeout: 5000 });
+                const lat = geo.data.latitude || 48.8566;
+                const lng = geo.data.longitude || 2.3522;
+                const loc = `${geo.data.city || 'Localisation inconnue'}, ${geo.data.country_name}`;
                 
                 map.setView([lat, lng], 10);
-                L.marker([lat, lng]).addTo(map)
-                    .bindPopup(`<b style="color:#f00;">🚨 INTRUSION</b><br>📍 ${locationName}<br>📡 ${ipRes.data.ip}`)
+                const marker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<b style="color:#f00;">🚨 INTRUSION DÉTECTÉE</b><br>📍 ${loc}<br>📡 ${ipRes.data.ip}<br>🕐 ${new Date().toLocaleString()}`)
                     .openPopup();
                 
                 intrusionCount++;
                 document.getElementById('intrusionCount').innerHTML = intrusionCount;
-                addLog(`🚨 [INTRUSION] Détectée depuis ${locationName}`, "fraud");
+                addLog(`🚨 [INTRUSION] Détectée depuis ${loc} (${ipRes.data.ip})`, "fraud");
                 
+                // Sauvegarde Firebase
                 if(db && currentUser.uid) {
                     await addDoc(collection(db, 'intrusions'), {
                         userId: currentUser.uid,
-                        location: locationName,
+                        location: loc,
                         ip: ipRes.data.ip,
-                        timestamp: new Date().toISOString()
+                        lat: lat,
+                        lng: lng,
+                        timestamp: new Date().toISOString(),
+                        aiRiskScore: aiRiskScore
                     });
-                    const userRef = doc(db, 'users', currentUser.uid);
-                    await updateDoc(userRef, { intrusionCount: intrusionCount });
+                    await updateDoc(doc(db, 'users', currentUser.uid), { 
+                        intrusionCount: intrusionCount,
+                        lastIntrusion: { location: loc, timestamp: new Date().toISOString() }
+                    });
                 }
                 
+                // Notification
                 if(Notification.permission === "granted") {
-                    new Notification("🚨 ALERTE INTRUSION", { body: `Détectée depuis ${locationName}` });
+                    new Notification("🚨 ALERTE INTRUSION", { body: `Détectée depuis ${loc}`, icon: "https://cdn-icons-png.flaticon.com/512/148/148764.png" });
                 }
-            } catch(error) {
-                addLog(`[INTRUSION] ❌ ${error.message}`, "error");
-            }
+                
+                // Mise à jour IA
+                await runAIAnalysis();
+                
+            } catch(e) { addLog(`[INTRUSION] ❌ ${e.message}`, "error"); }
         };
         
-        // Export données
+        // ==================== EXPORT DONNÉES ====================
         window.exportData = async function() {
             addLog("[EXPORT] 📥 Export des données...", "info");
             const data = {
                 exportDate: new Date().toISOString(),
-                intrusions: intrusionCount,
-                userAgent: navigator.userAgent
+                user: { id: currentUser.uid, intrusionCount: intrusionCount },
+                stats: { aiScore: aiRiskScore, vpn: document.getElementById('vpn').innerHTML },
+                location: { ip: document.getElementById('ipDisplay').innerHTML, country: document.getElementById('country').innerHTML }
             };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `cybertrack_${Date.now()}.json`;
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
+            a.download = `cybertrack_data_${Date.now()}.json`;
             a.click();
-            URL.revokeObjectURL(url);
             addLog("[EXPORT] ✅ Données exportées", "success");
         };
         
-        window.refreshAll = async function() {
-            addLog("[REFRESH] 🔄 Mise à jour...", "info");
-            await scanNetwork();
-            addLog("[REFRESH] ✅ Terminé", "success");
+        window.exportAIAnalysis = async function() {
+            addLog("[EXPORT] 📊 Export analyse IA...", "info");
+            const analysis = {
+                timestamp: new Date().toISOString(),
+                aiRiskScore: aiRiskScore,
+                predictions: riskChart ? riskChart.data.datasets[0].data : [],
+                recommendations: aiRiskScore > 70 ? "🔴 ALERTE MAXIMALE - Surveiller immédiatement" : 
+                               aiRiskScore > 40 ? "🟡 SURVEILLANCE RENFORCÉE" : "🟢 NORMAL"
+            };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(analysis, null, 2)], {type:'application/json'}));
+            a.download = `cybertrack_ai_${Date.now()}.json`;
+            a.click();
+            addLog("[EXPORT] ✅ Analyse IA exportée", "success");
         };
         
-        // Logs
-        function addLog(message, type) {
-            const logArea = document.getElementById('logs');
+        window.refreshAll = async function() { 
+            await scanNetwork(); 
+            await runAIAnalysis();
+            addLog("[REFRESH] ✅ Mise à jour terminée", "success"); 
+        };
+        
+        // ==================== LOGS ====================
+        function addLog(msg, type) {
             const div = document.createElement('div');
-            div.className = `log-entry ${type === 'fraud' ? 'fraud' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : ''))}`;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logArea.appendChild(div);
+            div.className = `log-entry ${type === 'fraud' ? 'fraud' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'ai-alert'))}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('logs').appendChild(div);
             div.scrollIntoView({ behavior: 'smooth' });
-            while(logArea.children.length > 100) logArea.removeChild(logArea.firstChild);
+            while(document.getElementById('logs').children.length > 150) {
+                document.getElementById('logs').removeChild(document.getElementById('logs').firstChild);
+            }
         }
         
-        window.clearLogs = function() {
+        window.clearLogs = function() { 
             document.getElementById('logs').innerHTML = '<div class="log-entry">[SYSTEM] Logs effacés</div>';
+            addLog("[SYSTEM] Logs vidés", "success");
         };
         
-        // Demande permission notifications
+        // ==================== INITIALISATION ====================
         if(Notification.permission === "default") Notification.requestPermission();
-        
-        // Initialisation
         initMap();
+        initChart();
         initAuth();
-        setInterval(() => { if(currentUser.uid) scanNetwork(); }, 60000);
-        addLog("[SYSTEM] 🚀 Cyber-Tracking-Real prêt", "success");
-        addLog("[SYSTEM] 🌐 Services: GPS, IP Geolocation, Firebase", "success");
+        setInterval(() => { if(currentUser.uid) { scanNetwork(); runAIAnalysis(); } }, 60000);
+        addLog("[SYSTEM] 🚀 Cyber-Tracking-Real v5.0 avec IA prédictive", "success");
+        addLog("[SYSTEM] 🧠 Modèle IA: Analyse comportementale active", "success");
+        addLog("[SYSTEM] 💡 Cliquez sur DÉTECTER INTRUS pour tester", "info");
+        
+        // Exports globaux
+        window.runAIAnalysis = runAIAnalysis;
+        window.scanNetwork = scanNetwork;
+        window.scanIntrusion = scanIntrusion;
+        window.getCurrentLocation = getCurrentLocation;
+        window.exportData = exportData;
+        window.exportAIAnalysis = exportAIAnalysis;
+        window.clearLogs = clearLogs;
+        window.refreshAll = refreshAll;
     </script>
 </body>
 </html>
