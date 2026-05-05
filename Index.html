@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cyber-Tracking-Real - Sécurité Anti-Intrusion</title>
+    <meta name="description" content="Système de détection d'intrusion, localisation GPS, scan réseau et surveillance en temps réel">
+    <meta name="author" content="CyberTrack">
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- Firebase SDK Modulaire -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"
+            }
+        }
+    </script>
+    
+    <!-- Autres librairies -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #0f0;
+            padding: 15px;
+            min-height: 100vh;
+        }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 5px #f00;} 50%{box-shadow:0 0 20px #f00;} }
+        .terminal {
+            background: #000000dd;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; }
+        .card {
+            background: #0a0a0add;
+            border: 1px solid #0f0;
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            background: #000000aa;
+            border-left: 3px solid #0f0;
+            border-radius: 5px;
+        }
+        button {
+            background: #000;
+            border: 2px solid #0f0;
+            color: #0f0;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            border-radius: 5px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        button:hover { background: #0f0; color: #000; transform: scale(1.02); }
+        .btn-danger { border-color: #f00; color: #f00; }
+        .btn-danger:hover { background: #f00; color: #000; }
+        .log-area {
+            background: #000;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.7em;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .log-entry { padding: 4px; border-bottom: 1px solid #0f03; font-family: monospace; }
+        .fraud { color: #f00; background: rgba(255,0,0,0.2); font-weight: bold; }
+        .success { color: #0f0; }
+        .warning { color: #ff0; }
+        #map { height: 250px; border-radius: 10px; border: 2px solid #0f0; margin-top: 10px; }
+        .status-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        .badge { padding: 5px 12px; background: #000000aa; border: 1px solid #0f0; border-radius: 20px; font-size: 0.8em; }
+        .alert-badge {
+            animation: pulse 1s infinite;
+            background: rgba(255,0,0,0.3);
+            border-color: #f00;
+            color: #f00;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.7em;
+            color: #666;
+        }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } button { padding: 8px 12px; } }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 1.2em;">🛡️ CYBER-TRACKING-REAL v4.0</span>
+            <span class="blink" style="background:#f00; padding:4px 12px; border-radius:20px; font-size:0.7em;">🔴 ACTIF</span>
+        </div>
+        <div class="status-bar">
+            <span class="badge">🚨 Intrusions: <span id="intrusionCount">0</span></span>
+            <span class="badge">👤 ID: <span id="userId">-</span></span>
+            <span class="badge">☁️ DB: <span id="dbStatus">⏳ CONNEXION</span></span>
+            <span class="badge">📡 IP: <span id="ipDisplay">-</span></span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>📍 LOCALISATION GPS</h3>
+            <div id="map"></div>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px;">
+                <button onclick="getCurrentLocation()">📍 MA POSITION</button>
+                <button onclick="scanIntrusion()" class="btn-danger">🎯 DÉTECTER INTRUS</button>
+                <button onclick="scanNetwork()">🌐 SCAN RÉSEAU</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 INFORMATIONS RÉSEAU</h3>
+            <div class="metric"><span>🌍 Pays:</span><span id="country">-</span></div>
+            <div class="metric"><span>🏢 FAI:</span><span id="isp">-</span></div>
+            <div class="metric"><span>🛡️ VPN/Proxy:</span><span id="vpn">-</span></div>
+            <div class="metric"><span>📍 Ville:</span><span id="city">-</span></div>
+            <div class="log-area" id="logs">
+                <div class="log-entry">[SYSTEM] Cyber-Tracking-Real v4.0</div>
+                <div class="log-entry">[SYSTEM] Initialisation...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="terminal">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+            <div>
+                <button onclick="exportData()">📥 EXPORTER DONNÉES</button>
+                <button onclick="clearLogs()">🗑️ EFFACER LOGS</button>
+                <button onclick="refreshAll()">🔄 RAFRAÎCHIR</button>
+            </div>
+            <div>
+                <span id="lastUpdate" style="font-size:0.7em;">Dernière mise à jour: -</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        🔒 Système de détection d'intrusion | Localisation GPS | Scan réseau | Données chiffrées
+    </div>
+
+    <script type="module">
+        // ==================== CONFIGURATION FIREBASE ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSoH2oBjEKZ9QVSsKAYWzaKIZNLYqagnQ",
+            authDomain: "cyber-tracking-real.firebaseapp.com",
+            projectId: "cyber-tracking-real",
+            storageBucket: "cyber-tracking-real.firebasestorage.app",
+            messagingSenderId: "678371376561",
+            appId: "1:678371376561:web:0588f6e2400eb48148d190",
+            measurementId: "G-XBDP12H526"
+        };
+        
+        // Imports Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, addDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        
+        // Initialisation
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // Variables
+        let map = null;
+        let currentUser = { uid: null };
+        let intrusionCount = 0;
+        
+        // Initialisation carte
+        function initMap() {
+            map = L.map('map').setView([48.8566, 2.3522], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+        }
+        
+        // Authentification
+        async function initAuth() {
+            try {
+                await signInAnonymously(auth);
+                document.getElementById('dbStatus').innerHTML = "CONNECTÉ ✅";
+                document.getElementById('dbStatus').style.color = "#0f0";
+                addLog("[AUTH] ✅ Authentification Firebase réussie", "success");
+            } catch(error) {
+                document.getElementById('dbStatus').innerHTML = "HORS-LIGNE";
+                document.getElementById('dbStatus').style.color = "#ff0";
+                addLog(`[AUTH] ⚠️ Mode hors-ligne: ${error.message}`, "warning");
+            }
+        }
+        
+        onAuthStateChanged(auth, async (user) => {
+            if(user) {
+                currentUser.uid = user.uid;
+                document.getElementById('userId').innerHTML = user.uid.substring(0, 8) + "...";
+                addLog(`[AUTH] 👤 Session démarrée`, "success");
+                await loadUserData();
+                await scanNetwork();
+            }
+        });
+        
+        async function loadUserData() {
+            if(!db || !currentUser.uid) return;
+            try {
+                const userRef = doc(db, 'users', currentUser.uid);
+                const userSnap = await getDoc(userRef);
+                if(userSnap.exists()) {
+                    intrusionCount = userSnap.data().intrusionCount || 0;
+                    document.getElementById('intrusionCount').innerHTML = intrusionCount;
+                } else {
+                    await setDoc(userRef, { intrusionCount: 0, createdAt: new Date().toISOString() });
+                }
+            } catch(error) {
+                addLog(`[DATA] ⚠️ ${error.message}`, "warning");
+            }
+        }
+        
+        // Scan réseau
+        async function scanNetwork() {
+            addLog("[NETWORK] 🌐 Scan réseau...", "info");
+            try {
+                const ipRes = await axios.get('https://api.ipify.org?format=json');
+                const ip = ipRes.data.ip;
+                document.getElementById('ipDisplay').innerHTML = ip;
+                
+                const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`);
+                document.getElementById('country').innerHTML = geoRes.data.country_name || "Inconnu";
+                document.getElementById('isp').innerHTML = geoRes.data.org || "Inconnu";
+                document.getElementById('city').innerHTML = geoRes.data.city || "Inconnue";
+                
+                const isVPN = geoRes.data.proxy || geoRes.data.tor || geoRes.data.vpn;
+                document.getElementById('vpn').innerHTML = isVPN ? "⚠️ DÉTECTÉ" : "✅ NORMAL";
+                
+                addLog(`[NETWORK] 📡 IP: ${ip} - ${geoRes.data.country_name}`, "success");
+                document.getElementById('lastUpdate').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
+            } catch(error) {
+                addLog(`[NETWORK] ❌ ${error.message}`, "error");
+            }
+        }
+        
+        // Localisation GPS
+        window.getCurrentLocation = function() {
+            if("geolocation" in navigator) {
+                addLog("[GPS] 📍 Récupération position...", "info");
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 15);
+                        L.marker([lat, lng]).addTo(map).bindPopup("📍 <b>Vous êtes ici</b>").openPopup();
+                        addLog(`📍 [GPS] ${lat.toFixed(4)}, ${lng.toFixed(4)}`, "success");
+                    },
+                    (error) => addLog(`❌ [GPS] ${error.message}`, "error"),
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                addLog("❌ [GPS] Non supporté", "error");
+            }
+        };
+        
+        // Détection intrusion
+        window.scanIntrusion = async function() {
+            addLog("[INTRUSION] 🎯 Scan en cours...", "warning");
+            try {
+                const ipRes = await axios.get('https://api.ipify.org?format=json');
+                const geoRes = await axios.get(`https://ipapi.co/${ipRes.data.ip}/json/`);
+                const lat = geoRes.data.latitude || 48.8566;
+                const lng = geoRes.data.longitude || 2.3522;
+                const locationName = `${geoRes.data.city || 'Inconnue'}, ${geoRes.data.country_name}`;
+                
+                map.setView([lat, lng], 10);
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<b style="color:#f00;">🚨 INTRUSION</b><br>📍 ${locationName}<br>📡 ${ipRes.data.ip}`)
+                    .openPopup();
+                
+                intrusionCount++;
+                document.getElementById('intrusionCount').innerHTML = intrusionCount;
+                addLog(`🚨 [INTRUSION] Détectée depuis ${locationName}`, "fraud");
+                
+                if(db && currentUser.uid) {
+                    await addDoc(collection(db, 'intrusions'), {
+                        userId: currentUser.uid,
+                        location: locationName,
+                        ip: ipRes.data.ip,
+                        timestamp: new Date().toISOString()
+                    });
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    await updateDoc(userRef, { intrusionCount: intrusionCount });
+                }
+                
+                if(Notification.permission === "granted") {
+                    new Notification("🚨 ALERTE INTRUSION", { body: `Détectée depuis ${locationName}` });
+                }
+            } catch(error) {
+                addLog(`[INTRUSION] ❌ ${error.message}`, "error");
+            }
+        };
+        
+        // Export données
+        window.exportData = async function() {
+            addLog("[EXPORT] 📥 Export des données...", "info");
+            const data = {
+                exportDate: new Date().toISOString(),
+                intrusions: intrusionCount,
+                userAgent: navigator.userAgent
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cybertrack_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog("[EXPORT] ✅ Données exportées", "success");
+        };
+        
+        window.refreshAll = async function() {
+            addLog("[REFRESH] 🔄 Mise à jour...", "info");
+            await scanNetwork();
+            addLog("[REFRESH] ✅ Terminé", "success");
+        };
+        
+        // Logs
+        function addLog(message, type) {
+            const logArea = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log-entry ${type === 'fraud' ? 'fraud' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : ''))}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logArea.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+            while(logArea.children.length > 100) logArea.removeChild(logArea.firstChild);
+        }
+        
+        window.clearLogs = function() {
+            document.getElementById('logs').innerHTML = '<div class="log-entry">[SYSTEM] Logs effacés</div>';
+        };
+        
+        // Demande permission notifications
+        if(Notification.permission === "default") Notification.requestPermission();
+        
+        // Initialisation
+        initMap();
+        initAuth();
+        setInterval(() => { if(currentUser.uid) scanNetwork(); }, 60000);
+        addLog("[SYSTEM] 🚀 Cyber-Tracking-Real prêt", "success");
+        addLog("[SYSTEM] 🌐 Services: GPS, IP Geolocation, Firebase", "success");
+    </script>
+</body>
+</html>
