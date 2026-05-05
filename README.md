@@ -1,31 +1,35 @@
-# 🛡️ Cyber-Tracking-Real
+# 🛡️ Cyber-Tracking-Real v5.0
 
-**Système de détection d'intrusion, localisation GPS et surveillance réseau en temps réel**
+**Système de détection d'intrusion avec IA prédictive, localisation GPS et scan réseau temps réel**
+
+[![GitHub stars](https://img.shields.io/github/stars/cybertrack/cyber-tracking-real)](https://github.com/cybertrack/cyber-tracking-real)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Firebase](https://img.shields.io/badge/Firebase-Cloud-orange)](https://firebase.google.com)
+[![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-blue)](https://pages.github.com)
 
 ## ✨ Fonctionnalités
 
-- 📍 **Localisation GPS** - Position géographique précise
-- 🌐 **Scan réseau** - IP publique, pays, FAI, détection VPN/Proxy
-- 🚨 **Détection d'intrusion** - Alerte en temps réel
-- ☁️ **Base de données cloud** - Sauvegarde Firebase
-- 📥 **Export des données** - Format JSON
-- 📱 **Responsive** - Fonctionne sur mobile et desktop
+| Fonctionnalité | Description | Statut |
+|----------------|-------------|--------|
+| 📍 **Localisation GPS** | Position géographique précise en temps réel | ✅ |
+| 🌐 **Scan réseau** | IP publique, pays, FAI, détection VPN/Proxy | ✅ |
+| 🚨 **Détection intrusion** | Alerte immédiate avec localisation | ✅ |
+| 🧠 **IA prédictive** | Analyse comportementale et scoring risque | ✅ |
+| 📊 **Dashboard IA** | Graphique prédictif des menaces | ✅ |
+| ☁️ **Cloud Firebase** | Sauvegarde automatique des intrusions | ✅ |
+| 📥 **Export données** | JSON avec analyses IA | ✅ |
+| 📱 **Responsive** | Fonctionne sur mobile, tablette, desktop | ✅ |
 
-## 🚀 Démo en ligne
+## 🎯 IA Prédictive - Comment ça marche
 
-🔗 [https://cyber-tracking-real-45e14.web.app](https://cyber-tracking-real-45e14.web.app)
+Le système utilise un modèle d'analyse multi-facteurs :
 
-## 🛠️ Technologies utilisées
-
-- HTML5 / CSS3 / JavaScript
-- Firebase (Authentication, Firestore)
-- Leaflet / OpenStreetMap
-- ipapi.co (Géolocalisation IP)
-- Geolocation API
-
-## 📦 Installation locale
-
-```bash
-git clone https://github.com/votre-compte/cyber-tracking-real.git
-cd cyber-tracking-real
-# Ouvrir index.html dans le navigateur
+```python
+# Facteurs analysés par l'IA
+risk_factors = {
+    "Horaire": "Plus de risques la nuit (22h-5h)",
+    "VPN/Proxy": "+30% de risque si détecté",
+    "Historique": "Score basé sur les intrusions passées",
+    "Changement IP": "Anomalie potentielle",
+    "Weekend": "Activité suspecte majorée"
+}
